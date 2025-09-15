@@ -1,0 +1,109 @@
+Excellent 👍, tu veux une roadmap claire pour savoir quoi faire, dans quel ordre, sans te perdre.
+Je vais te donner les étapes dans l’ordre logique, de la plus simple à la plus avancée, et expliquer pourquoi chaque étape est importante.
+
+🛠️ Roadmap du projet woody_woodpacker
+🥇 Partie 1 — Lire et comprendre un ELF
+
+👉 Objectif : être capable de lire un ELF et afficher ses infos.
+
+Ouvrir un ELF avec open.
+
+Lire la taille avec fstat.
+
+Mapper le fichier en mémoire avec mmap.
+
+Lire l’en-tête ELF (Elf64_Ehdr).
+
+Vérifier la magie (0x7F ELF).
+
+Vérifier que c’est bien un 64 bits.
+
+Récupérer l’entrypoint (e_entry).
+
+Lire la table des segments (Elf64_Phdr).
+
+Afficher les segments de type PT_LOAD.
+
+Identifier celui qui contient .text.
+
+✅ À la fin de cette partie, tu dois être capable de faire ton propre mini-readelf -l (juste les segments).
+
+🥈 Partie 2 — Créer un binaire modifié
+
+👉 Objectif : générer une copie modifiée du fichier ELF.
+
+Faire une copie du fichier ELF original (nouveau fichier woody).
+
+Ajouter des octets factices à la fin du fichier (exemple : 0x90 0x90 = NOP en assembleur).
+
+Changer l’entrypoint dans l’en-tête pour pointer vers ces octets.
+
+Donc, quand on lance ./woody, ça commence par exécuter tes octets factices.
+
+✅ À la fin de cette partie, ./woody plantera sûrement (car tes octets ne font rien), mais tu auras réussi à rediriger l’entrypoint vers ton code.
+
+🥉 Partie 3 — Stub minimal
+
+👉 Objectif : écrire un petit bout de code qui s’exécute avant le vrai programme.
+
+Écrire un stub en assembleur qui affiche ....WOODY.... puis jmp à l’ancien entrypoint.
+
+Compiler ton stub en binaire brut (pas en ELF complet).
+
+Insérer ce stub dans woody.
+
+Modifier e_entry pour pointer sur ce stub.
+
+Dans le stub, remplacer old_entry par la vraie adresse (celle sauvegardée avant).
+
+✅ À la fin de cette partie, ./woody doit afficher ....WOODY.... puis exécuter normalement le programme original.
+
+🏅 Partie 4 — Chiffrement du code
+
+👉 Objectif : rendre .text illisible et le restaurer avec le stub.
+
+Choisir une section ou un segment (ex : .text).
+
+Générer une clé aléatoire (/dev/urandom).
+
+Appliquer un chiffrement simple (ex : XOR avec la clé).
+
+Modifier ton stub pour faire l’opération inverse (déchiffrement).
+
+✅ À la fin de cette partie, ./woody affiche ....WOODY...., déchiffre le code en mémoire, puis exécute normalement le binaire original.
+
+🏆 Partie 5 — Bonus (si obligatoire est nickel)
+
+👉 Quelques idées :
+
+Supporter aussi les ELF 32 bits.
+
+Utiliser un algo plus avancé (AES, RC4).
+
+Ajouter une compression.
+
+Gérer d’autres formats (Mach-O, PE).
+
+Stub ultra optimisé en assembleur pur.
+
+🎯 Résumé en étapes concrètes
+
+Lire et afficher un ELF → comprendre son en-tête et ses segments.
+
+Copier un ELF et changer l’entrypoint → premier test de modification.
+
+Écrire un stub → petit code qui affiche un message puis saute à l’ancien entrypoint.
+
+Ajouter le chiffrement/déchiffrement → sécuriser la section .text.
+
+Optimiser et bonus.
+
+👉 Mon conseil :
+
+Ne saute pas d’étapes.
+
+Valide chaque petite étape (ex. d’abord rediriger l’entrypoint vers un jmp qui plante → puis vers un vrai stub → puis ajouter l’affichage → puis le déchiffrement).
+
+Comme ça, tu construis ton packer petit à petit.
+
+Veux-tu que je t’écrive un premier exercice pratique pour que tu commences par la Partie 1 (par ex. afficher tous les segments PT_LOAD d’un ELF comme readelf -l le ferait) ?

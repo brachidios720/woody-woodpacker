@@ -11,13 +11,18 @@
 // readelf -h sample     # affiche le header ELF
 // readelf -S sample     # affiche les sections (dont .text)
 // readelf -l sample     # affiche les segments
+// objdump -D mon_programme | less # Désassembler le binaire entier
+// objdump -d -j .text mon_programme | less # Désassembler seulement .text (le code) :
+// hexdump -C mon_programme | less # Voir le fichier brut en hexadécimal (octet par octet).Pratique pour vérifier si ton stub a bien été écrit à la fin du fichier. Hexdump classique :
+// xxd mon_programme | less # Avec xxd (souvent plus lisible) :
+
 
 int main(int ac, char **av){
 
 
     if(ac != 2 )
     {
-        fprintf(stderr, "Wrong number of arguments", av[0]);
+        fprintf(stderr, "Wrong number of arguments %s\n", av[0]);
         return 1;
     }
 
@@ -36,7 +41,51 @@ int main(int ac, char **av){
         return 1;
     }
 
+    void *map = mmap(NULL, st.st_size, PROT_READ, MAP_PRIVATE, fd, 0);
+    if(map == MAP_FAILED){
+        perror(map);
+        close(fd);
+        return 1;
+    }
 
- 
+    Elf64_Ehdr *ehdr = (Elf64_Ehdr *)map;
 
+    if(ehdr->e_ident[EI_MAG0] != ELFMAG0 || 
+        ehdr->e_ident[EI_MAG1] != ELFMAG1 ||
+        ehdr->e_ident[EI_MAG2] != ELFMAG2 || 
+        ehdr->e_ident[EI_MAG3] != ELFMAG3){
+    
+        fprintf(stderr, "not on elf");
+        munmap(map, st.st_size);
+        close(fd);
+        return 1;
+    }
+
+    if(ehdr->e_ident[EI_CLASS] != ELFCLASS64){
+        fprintf(stderr, "wromg elf format");
+        munmap(map, st.st_size);
+        close(fd);
+        return 1;
+    }
+
+
+    //Elf64_Addr old_entry = ehdr->e_entry;
+
+    Elf64_Phdr *phdr = (Elf64_Phdr *)((char *)map + ehdr->e_phoff);
+
+    for (int i = 0; i < ehdr->e_phnum; i++) {
+    if (phdr[i].p_type == PT_LOAD) {
+        printf("Segment %d: offset=0x%lx vaddr=0x%lx memsz=0x%lx filesz=0x%lx\n",
+               i,
+               (unsigned long)phdr[i].p_offset,
+               (unsigned long)phdr[i].p_vaddr,
+               (unsigned long)phdr[i].p_memsz,
+               (unsigned long)phdr[i].p_filesz);
+    }
+    }
+    write(1, map, st.st_size);
+
+    close(fd);
+    return 0;
+    
 }
