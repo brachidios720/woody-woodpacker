@@ -5,9 +5,7 @@
 #include <fcntl.h>
 #include <sys/stat.h>
 #include <sys/mman.h>
-
-
-extern void my_stub();
+#include <string.h>
 
 
 // readelf -h sample     # affiche le header ELF
@@ -131,12 +129,141 @@ int main(int ac, char **av){
 
     //sauvegarder les changements sur le disque
     msync(wmap, st_out.st_size, MS_SYNC);
-    //vider la memoire de wmap
-    munmap(wmap, st_out.st_size);
 
-    my_stub();
+    //on ouvre le stub.bin de la compilation et on lit les octets dedans
+    int stub_fd = open("stub.bin", O_RDONLY);
+    if(stub_fd == -1){
+        perror("Open stub");
+        return 1;
+    }
 
-    
+    struct stat st_stub;
+    fstat(stub_fd, &st_stub);
+
+
+    unsigned char *stub_bytes = malloc(st_stub.st_size);
+    if (!stub_bytes) 
+        return 1;
+    read(stub_fd, stub_bytes, st_stub.st_size);
+    close(stub_fd);
+
+    // patcher le placeholder
+    //on cherche l'endroit dans le bin asm pour changer le placeholder
+    int found = 0;
+    for (int i = 0; i < st_stub.st_size - 8; i++) {
+        if (*(uint64_t *)(stub_bytes + i) == 0x1111111111111111ULL) {
+            // calculer l'adresse virtuelle réelle de l'ancien entrypoint
+            //car le loader mappe aleatoirement l'adresse ou le programme commence
+            Elf64_Phdr *text_seg = NULL;
+            for (int j = 0; j < wehdr->e_phnum; j++) {
+                if (wphdr[j].p_type == PT_LOAD &&
+                    old_entry >= wphdr[j].p_vaddr &&
+                    old_entry < wphdr[j].p_vaddr + wphdr[j].p_memsz) {
+                    text_seg = &wphdr[j];
+                    break;
+                }
+            }
+            if (!text_seg) {
+                free(stub_bytes);
+                munmap(wmap, st_out.st_size);
+                close(out);
+                munmap(map, st.st_size);
+                close(fd);
+                return 1;
+            }
+
+            uint64_t old_entry_virtual = old_entry + (text_seg->p_vaddr - text_seg->p_offset);
+            *(uint64_t *)(stub_bytes + i) = old_entry_virtual;
+            found = 1;
+            break;
+        }
+    }
+    if (!found) {
+        free(stub_bytes);
+        munmap(wmap, st_out.st_size);
+        close(out);
+        munmap(map, st.st_size);
+        close(fd);
+        return 1;
+    }
+
+    // Taille du stub à injecter dans le binaire
+    size_t stub_size = (size_t)st_stub.st_size;
+
+    // Index du segment PT_LOAD choisi pour l'injection (-1 = non trouvé)
+    int target_idx = -1;
+
+    // Offset dans le fichier où le stub sera injecté
+    size_t inject_offset = 0;
+
+    // Parcours de tous les headers de programme pour trouver un segment exécutable PT_LOAD
+    for (int i = 0; i < wehdr->e_phnum; i++) {
+
+        // Ignorer les segments qui ne sont pas PT_LOAD
+        if (wphdr[i].p_type != PT_LOAD) continue;
+
+        // Ignorer les segments qui ne sont pas exécutables (flags PF_X)
+        if ((wphdr[i].p_flags & PF_X) == 0) continue;
+
+        // Offset du segment dans le fichier
+        size_t seg_offset = (size_t)wphdr[i].p_offset;
+
+        // Taille actuelle des données présentes dans le fichier pour ce segment
+        size_t seg_filesz = (size_t)wphdr[i].p_filesz;
+
+        // Adresse de fin du segment dans le fichier (où commencer l'injection possible)
+        size_t seg_end_in_file = seg_offset + seg_filesz;
+
+        // Chercher l'offset du segment PT_LOAD suivant pour déterminer la taille du "gap"
+        size_t next_offset = (size_t)st_out.st_size; // par défaut, fin du fichier
+        for (int j = 0; j < wehdr->e_phnum; j++) {
+            if (wphdr[j].p_type != PT_LOAD) continue; // uniquement PT_LOAD
+            size_t other_off = (size_t)wphdr[j].p_offset;
+            // garder le plus petit offset supérieur à seg_offset
+            if (other_off > seg_offset && other_off < next_offset) next_offset = other_off;
+        }
+
+        // Calcul de l'espace libre entre la fin du segment courant et le segment suivant
+        ssize_t gap_signed = (ssize_t)next_offset - (ssize_t)seg_end_in_file;
+        size_t gap = (gap_signed > 0) ? (size_t)gap_signed : 0; // ne garder que les gaps positifs
+
+        // Vérification si le gap est assez grand pour contenir le stub et si on ne dépasse pas la taille du fichier
+        if (gap >= stub_size && seg_end_in_file + stub_size <= (size_t)st_out.st_size) {
+            target_idx = i;            // on garde l'index du segment choisi
+            inject_offset = seg_end_in_file; // offset exact où injecter le stub
+            break;
+        }
+    }
+
+
+    if (target_idx == -1) {
+        free(stub_bytes);
+        munmap(wmap, st_out.st_size);
+        close(out);
+        munmap(map, st.st_size);
+        close(fd);
+        return 1;
+    }
+
+    // injection du stub dans le segment choisi
+    memcpy((char *)wmap + inject_offset, stub_bytes, stub_size);
+
+    //mise a jour de la taille des donnees pour ce segment
+    //(pfilesz c'est la taille du segment qui apparait dans readelf)
+    wphdr[target_idx].p_filesz += (Elf64_Xword)stub_size;
+
+    if (wphdr[target_idx].p_memsz < wphdr[target_idx].p_filesz)
+        wphdr[target_idx].p_memsz = wphdr[target_idx].p_filesz;
+
+    wehdr->e_entry = wphdr[target_idx].p_vaddr + (inject_offset - wphdr[target_idx].p_offset);
+
+    free(stub_bytes);
+
+
+    printf("Injection OK: seg=%d inject_offset=0x%zx new_entry=0x%lx\n",
+           target_idx, inject_offset, (unsigned long)wehdr->e_entry);
+
+
 
     close(fd);
     return 0;

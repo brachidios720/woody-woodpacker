@@ -16,7 +16,7 @@ ASM_OBJ = stub.o
 CC = gcc
 NASM = nasm
 
-CFLAGS = -Wall -Wextra -Werror -g
+CFLAGS = -Wall -Wextra -Werror -g3
 NASMFLAGS = -f elf64
 
 # Règle par défaut
