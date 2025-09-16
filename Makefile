@@ -9,20 +9,30 @@ RES_DIR = resources
 PACKER_SRC = woody_woodpacker.c
 SAMPLE_SRC = $(RES_DIR)/sample.c
 
-# Compilateur et flags
+ASM_SRC = stub.s
+ASM_OBJ = stub.o
+
+# Compilateurs et flags
 CC = gcc
+NASM = nasm
+
 CFLAGS = -Wall -Wextra -Werror -g
+NASMFLAGS = -f elf64
 
 # Règle par défaut
 all: $(PACKER) $(SAMPLE)
 
 # Compilation du packer
-$(PACKER): $(PACKER_SRC)
-	$(CC) $(CFLAGS) -o $(PACKER) $(PACKER_SRC)
+$(PACKER): $(PACKER_SRC) $(ASM_OBJ)
+	$(CC) $(CFLAGS) -o $(PACKER) $(PACKER_SRC) $(ASM_OBJ)
 
 # Compilation du sample
 $(SAMPLE): $(SAMPLE_SRC)
 	$(CC) $(CFLAGS) -o $(SAMPLE) $(SAMPLE_SRC)
+
+# Compilation du stub en NASM
+$(ASM_OBJ): $(ASM_SRC)
+	$(NASM) $(NASMFLAGS) $< -o $@
 
 # Exécution du sample pour test
 run: $(SAMPLE)
@@ -31,3 +41,6 @@ run: $(SAMPLE)
 # Nettoyage
 clean:
 	rm -f $(PACKER) $(SAMPLE) woody
+	rm -f 3woody
+	rm -f $(ASM_OBJ)
+

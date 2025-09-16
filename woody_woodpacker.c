@@ -7,6 +7,8 @@
 #include <sys/mman.h>
 
 
+extern void my_stub();
+
 
 // readelf -h sample     # affiche le header ELF
 // readelf -S sample     # affiche les sections (dont .text)
@@ -74,16 +76,67 @@ int main(int ac, char **av){
     Elf64_Phdr *phdr = (Elf64_Phdr *)((char *)map + ehdr->e_phoff);
 
     for (int i = 0; i < ehdr->e_phnum; i++) {
-    if (phdr[i].p_type == PT_LOAD) {
-        printf("Segment %d: offset=0x%lx vaddr=0x%lx memsz=0x%lx filesz=0x%lx\n",
-               i,
-               (unsigned long)phdr[i].p_offset,
-               (unsigned long)phdr[i].p_vaddr,
-               (unsigned long)phdr[i].p_memsz,
-               (unsigned long)phdr[i].p_filesz);
+        if (phdr[i].p_type == PT_LOAD) {
+            printf("Segment %d: offset=0x%lx vaddr=0x%lx memsz=0x%lx filesz=0x%lx\n",
+                   i,
+                (unsigned long)phdr[i].p_offset,
+                (unsigned long)phdr[i].p_vaddr,
+                (unsigned long)phdr[i].p_memsz,
+                (unsigned long)phdr[i].p_filesz);
+        }
     }
+
+    int out = open("3woody",O_RDWR | O_CREAT | O_TRUNC , 0755);
+    if(out == -1){
+        perror("open woody");
+        return 1;
     }
-    write(1, map, st.st_size);
+
+    if(write(out, map, st.st_size) != st.st_size){
+        perror("write woody");
+        close(out);
+        return 1;
+    }
+
+    struct stat st_out;
+    fstat(out, &st_out);
+
+
+    //wmap c'est le pointeur qui pointe sur le programme header de woody mappe en memoire
+    void *wmap = mmap(NULL, st_out.st_size, PROT_READ | PROT_WRITE, MAP_SHARED, out, 0);
+    Elf64_Ehdr *wehdr = (Elf64_Ehdr *)wmap;
+    //on stocke l'entrypoint de woody(qu'on voudra changer)
+    Elf64_Addr old_entry = wehdr->e_entry;
+    printf("Ancien entrypoint: 0x%lx\n", old_entry);
+
+    //on prend la programme header de woody
+    Elf64_Phdr *wphdr = (Elf64_Phdr *)((char *)wmap + wehdr->e_phoff);
+
+    //on calcule le nouvel entrypoint
+    Elf64_Addr new_entry = 0;
+
+    for(int i = 0; i < wehdr->e_phnum; i++){
+        if(wphdr[i].p_type == PT_LOAD){
+            //chopper la fin du segment .text ou on veut rajouter des octets
+            new_entry = wphdr[i].p_vaddr + wphdr[i].p_filesz;
+            //new entry pointe vers l'endroit ou on veut mettre le stub
+        }
+    }
+
+    //on defini mnt ou on veut l'entrypoint
+    //avant c'etait sur le .text
+    //Maintenant c'est sur adresse virtuelle de la ou on va mettre le stub
+    wehdr->e_entry = new_entry;
+    printf("Nouveau entrypoint: 0x%lx\n", new_entry);
+
+    //sauvegarder les changements sur le disque
+    msync(wmap, st_out.st_size, MS_SYNC);
+    //vider la memoire de wmap
+    munmap(wmap, st_out.st_size);
+
+    my_stub();
+
+    
 
     close(fd);
     return 0;
