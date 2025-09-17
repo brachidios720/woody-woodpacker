@@ -154,29 +154,29 @@ int main(int ac, char **av){
         if (*(uint64_t *)(stub_bytes + i) == 0x1111111111111111ULL) {
             // calculer l'adresse virtuelle réelle de l'ancien entrypoint
             //car le loader mappe aleatoirement l'adresse ou le programme commence
-            Elf64_Phdr *text_seg = NULL;
-            for (int j = 0; j < wehdr->e_phnum; j++) {
-                if (wphdr[j].p_type == PT_LOAD &&
-                    old_entry >= wphdr[j].p_vaddr &&
-                    old_entry < wphdr[j].p_vaddr + wphdr[j].p_memsz) {
-                    text_seg = &wphdr[j];
-                    break;
-                }
-            }
-            if (!text_seg) {
-                free(stub_bytes);
-                munmap(wmap, st_out.st_size);
-                close(out);
-                munmap(map, st.st_size);
-                close(fd);
-                return 1;
-            }
-
-            uint64_t old_entry_virtual = old_entry + (text_seg->p_vaddr - text_seg->p_offset);
-            *(uint64_t *)(stub_bytes + i) = old_entry_virtual;
+            //Elf64_Phdr *text_seg = NULL;
+            // for (int j = 0; j < wehdr->e_phnum; j++) {
+            //     if (wphdr[j].p_type == PT_LOAD &&
+            //         old_entry >= wphdr[j].p_vaddr &&
+            //         old_entry < wphdr[j].p_vaddr + wphdr[j].p_memsz) {
+            //         text_seg = &wphdr[j];
+            //         break;
+            //     }
+            *(uint64_t *)(stub_bytes + i) = old_entry;    
             found = 1;
             break;
         }
+            // if (!text_seg) {
+            //     free(stub_bytes);
+            //     munmap(wmap, st_out.st_size);
+            //     close(out);
+            //     munmap(map, st.st_size);
+            //     close(fd);
+            //     return 1;
+            // }
+
+            // uint64_t old_entry_virtual = old_entry + (text_seg->p_vaddr - text_seg->p_offset);
+            // *(uint64_t *)(stub_bytes + i) = old_entry_virtual;
     }
     if (!found) {
         free(stub_bytes);

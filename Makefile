@@ -15,8 +15,7 @@ ASM_OBJ = stub.o
 # Compilateurs et flags
 CC = gcc
 NASM = nasm
-
-CFLAGS = -Wall -Wextra -Werror -g3
+CFLAGS = -Wall -Wextra -Werror -g3 -no-pie
 NASMFLAGS = -f elf64
 
 # Règle par défaut
