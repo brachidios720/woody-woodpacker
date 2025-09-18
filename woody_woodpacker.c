@@ -96,6 +96,7 @@ int main(int ac, char **av){
         return 1;
     }
 
+
     struct stat st_out;
     fstat(out, &st_out);
 
@@ -127,6 +128,51 @@ int main(int ac, char **av){
     wehdr->e_entry = new_entry;
     printf("Nouveau entrypoint: 0x%lx\n", new_entry);
 
+    // mise ne place de la crytp pour rechercher la section .text
+
+    //permet l acces au section header de woody
+    Elf64_Shdr *shwoody = (Elf64_Shdr *)((char *) wmap + wehdr->e_shoff);
+
+    //permet l acces au nom des section present dans shwoody
+    Elf64_Shdr *shstrwoody = &shwoody[wehdr->e_shstrndx];
+    const char *shstrtabwoody = (char *)wmap + shstrwoody->sh_offset;
+
+
+    unsigned char key = 0x42; // clé XOR (exemple, fixe pour le moment)
+
+    // p_text pointe vers la section .text dans woody
+    
+    
+    unsigned long sh_offset = 0;
+    unsigned long sh_addr = 0;
+    unsigned long sh_size = 0;
+
+    for (int i = 0; i < wehdr->e_shnum; i++){
+        
+        const char *name = shstrtabwoody + shwoody[i].sh_name;
+        if(strcmp(name, ".text") == 0){
+            printf(".text: offset=0x%lx addr=0x%lx size= 0x%lx\n", 
+                (unsigned long)shwoody[i].sh_offset,
+                (unsigned long)shwoody[i].sh_addr,
+                (unsigned long)shwoody[i].sh_size);
+                sh_offset = (unsigned long)shwoody[i].sh_offset;
+                sh_addr = (unsigned long)shwoody[i].sh_addr;
+                sh_size = (unsigned long)shwoody[i].sh_size;
+            }
+    }
+    
+    // chiffrement en methode XOR
+    if(sh_offset != 0 && sh_addr != 0 && sh_size != 0){
+        unsigned char *p_text = (unsigned char *)wmap + sh_offset;
+        
+        for (size_t i = 0; i < sh_size; i++) {
+            p_text[i] ^= key;  // on chiffre en place
+        }
+        printf(".text chiffré avec la clé 0x%x\n", key);
+    }
+    else
+        perror("encrypt error\n");
+        
     //sauvegarder les changements sur le disque
     msync(wmap, st_out.st_size, MS_SYNC);
 
