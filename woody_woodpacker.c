@@ -106,27 +106,27 @@ int main(int ac, char **av){
     Elf64_Ehdr *wehdr = (Elf64_Ehdr *)wmap;
     //on stocke l'entrypoint de woody(qu'on voudra changer)
     Elf64_Addr old_entry = wehdr->e_entry;
-    printf("Ancien entrypoint: 0x%lx\n", old_entry);
+    // printf("Ancien entrypoint: 0x%lx\n", old_entry);
 
     //on prend la programme header de woody
     Elf64_Phdr *wphdr = (Elf64_Phdr *)((char *)wmap + wehdr->e_phoff);
 
     //on calcule le nouvel entrypoint
-    Elf64_Addr new_entry = 0;
+    //Elf64_Addr new_entry = 0;
 
-    for(int i = 0; i < wehdr->e_phnum; i++){
-        if(wphdr[i].p_type == PT_LOAD){
-            //chopper la fin du segment .text ou on veut rajouter des octets
-            new_entry = wphdr[i].p_vaddr + wphdr[i].p_filesz;
-            //new entry pointe vers l'endroit ou on veut mettre le stub
-        }
-    }
+    // for(int i = 0; i < wehdr->e_phnum; i++){
+    //     if(wphdr[i].p_type == PT_LOAD){
+    //         //chopper la fin du segment .text ou on veut rajouter des octets
+    //         new_entry = wphdr[i].p_vaddr + wphdr[i].p_filesz;
+    //         //new entry pointe vers l'endroit ou on veut mettre le stub
+    //     }
+    // }
 
     //on defini mnt ou on veut l'entrypoint
     //avant c'etait sur le .text
     //Maintenant c'est sur adresse virtuelle de la ou on va mettre le stub
-    wehdr->e_entry = new_entry;
-    printf("Nouveau entrypoint: 0x%lx\n", new_entry);
+    // wehdr->e_entry = new_entry;
+    // printf("Nouveau entrypoint: 0x%lx\n", new_entry);
 
     // mise ne place de la crytp pour rechercher la section .text
 
@@ -173,6 +173,8 @@ int main(int ac, char **av){
     else
         perror("encrypt error\n");
         
+    printf("[PATCH] .text addr=0x%lx size=0x%lx old_entry=0x%lx key=0x%x\n",
+       sh_addr, sh_size, old_entry, key);
     //sauvegarder les changements sur le disque
     msync(wmap, st_out.st_size, MS_SYNC);
 
@@ -236,6 +238,7 @@ int main(int ac, char **av){
     // Taille du stub à injecter dans le binaire
     size_t stub_size = (size_t)st_stub.st_size;
 
+    printf("stub_size = %ld\n", stub_size);
     // Index du segment PT_LOAD choisi pour l'injection (-1 = non trouvé)
     int target_idx = -1;
 
@@ -291,25 +294,29 @@ int main(int ac, char **av){
         return 1;
     }
 
-    uint64_t text_addr = shwoody->sh_addr;   // adresse virtuelle de .text
-    uint64_t text_size = shwoody->sh_size;   // taille de .text
+    wphdr[target_idx].p_flags |= PF_W;
 
-    for(size_t i = 0; i <(size_t)st_stub.st_size - 8; i++){
+    for (size_t i = 0; i < (size_t)st_stub.st_size - 8; i++) {
+        uint64_t *p = (uint64_t *)(stub_bytes + i);
 
-        if(*(uint64_t *)(stub_bytes + i) == 0x2222222222222222ULL)
-            *(uint64_t *)(stub_bytes + i) = text_addr;
-        if(*(uint64_t *)(stub_bytes + i) == 0x3333333333333333ULL)
-            *(uint64_t *)(stub_bytes + i) = text_size;
-
+        if (*p == 0x2222222222222222ULL) *p = sh_addr;    // adresse virtuelle .text
+        if (*p == 0x3333333333333333ULL) *p = sh_size;    // taille .text
+        if (*p == 0x1111111111111111ULL) *p = old_entry;  // ancien entrypoint
+        if (*p == 0x4444444444444444ULL){
+            uint64_t key64 = (uint64_t)key;   // clé 8 bits étendue
+            *p = key64;       // patch clé XOR
+        }
     }
 
-    for(size_t i = 0; i < (size_t)st_stub.st_size; i++){
-        if(stub_bytes[i] == 0x44)
-            stub_bytes[i] = key;
-    }
+    printf("sh_size = %ld\n", sh_size);
+
 
     // injection du stub dans le segment choisi
     memcpy((char *)wmap + inject_offset, stub_bytes, stub_size);
+
+    printf("[DEBUG] inject_offset=0x%zx stub[0..4]=%02x %02x %02x %02x\n",
+       inject_offset, stub_bytes[0], stub_bytes[1], stub_bytes[2], stub_bytes[3]);
+
 
     //mise a jour de la taille des donnees pour ce segment
     //(pfilesz c'est la taille du segment qui apparait dans readelf)
@@ -319,6 +326,7 @@ int main(int ac, char **av){
         wphdr[target_idx].p_memsz = wphdr[target_idx].p_filesz;
 
     wehdr->e_entry = wphdr[target_idx].p_vaddr + (inject_offset - wphdr[target_idx].p_offset);
+
 
     free(stub_bytes);
 
