@@ -194,7 +194,7 @@ int main(int ac, char **av){
     close(stub_fd);
 
     // patcher le placeholder
-    //on cherche l'endroit dans le bin asm pour changer le placeholder
+    // on cherche l'endroit dans le bin asm pour changer le placeholder
     int found = 0;
     for (int i = 0; i < st_stub.st_size - 8; i++) {
         if (*(uint64_t *)(stub_bytes + i) == 0x1111111111111111ULL) {
@@ -289,6 +289,23 @@ int main(int ac, char **av){
         munmap(map, st.st_size);
         close(fd);
         return 1;
+    }
+
+    uint64_t text_addr = shwoody->sh_addr;   // adresse virtuelle de .text
+    uint64_t text_size = shwoody->sh_size;   // taille de .text
+
+    for(size_t i = 0; i <(size_t)st_stub.st_size - 8; i++){
+
+        if(*(uint64_t *)(stub_bytes + i) == 0x2222222222222222ULL)
+            *(uint64_t *)(stub_bytes + i) = text_addr;
+        if(*(uint64_t *)(stub_bytes + i) == 0x3333333333333333ULL)
+            *(uint64_t *)(stub_bytes + i) = text_size;
+
+    }
+
+    for(size_t i = 0; i < (size_t)st_stub.st_size; i++){
+        if(stub_bytes[i] == 0x44)
+            stub_bytes[i] = key;
     }
 
     // injection du stub dans le segment choisi
