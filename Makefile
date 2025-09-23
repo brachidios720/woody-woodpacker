@@ -9,7 +9,9 @@ RES_DIR = resources
 PACKER_SRC = woody_woodpacker.c \
 			read_elf.c \
 			creat_elf.c \
-			encrypt_woody.c 
+			encrypt_woody.c \
+			stub_setup.c \
+			stub_position.c
 
 SAMPLE_SRC = $(RES_DIR)/sample.c
 

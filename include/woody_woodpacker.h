@@ -14,15 +14,22 @@
 # define OPEN_AND_READ_ERROR 10
 # define COPY_ERROR 11
 # define ENCRYPT_ERROR 12
+# define STUB_SETUP_ERROR 13
+# define CALCUL_STUB_POSITION_FAIL 14
 
 typedef struct {
 
     int fd;
     int out;
+    int stub_fd;
+
     struct stat st;
     struct stat st_out;
+    struct stat st_stub;
+
     void *map;
-    void *wmap; 
+    void *wmap;
+
     Elf64_Ehdr *ehdr;
     Elf64_Phdr *phdr;
     Elf64_Ehdr *wehdr;
@@ -30,10 +37,21 @@ typedef struct {
     Elf64_Shdr *shwoody;
     Elf64_Shdr *shstrwoody;
     Elf64_Addr old_entry;
+
     unsigned long sh_offset;
     unsigned long sh_addr;
     unsigned long sh_size;
     unsigned char key;
+
+    size_t seg_offset;
+    size_t seg_filesz;
+    size_t seg_end_in_file;
+
+    unsigned char *stub_bytes;
+    size_t stub_size;
+
+    int target_idx;
+    size_t inject_offset;
 
 } ElfFile;
 
@@ -41,5 +59,7 @@ typedef struct {
 int open_and_map(const char *path, ElfFile *elf);
 int creat_copie_elf(ElfFile *elf);
 int encrypt_elf(ElfFile *elf);
+int set_stub(ElfFile *elf);
+int calcul_stub_position(ElfFile *elf);
 
 #endif
