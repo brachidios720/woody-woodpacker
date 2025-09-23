@@ -6,7 +6,11 @@ SAMPLE = sample
 RES_DIR = resources
 
 # Fichiers sources
-PACKER_SRC = woody_woodpacker.c
+PACKER_SRC = woody_woodpacker.c \
+			read_elf.c \
+			creat_elf.c \
+			encrypt_woody.c 
+
 SAMPLE_SRC = $(RES_DIR)/sample.c
 
 ASM_SRC = stub.s
