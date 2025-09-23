@@ -55,7 +55,7 @@ int main(int ac, char **av){
     if(set_stub(&elf) < 0)
         return STUB_SETUP_ERROR;
 
-    if(calcul_stub_position(&elf) < 0);
+    if(calcul_stub_position(&elf) < 0)
         return CALCUL_STUB_POSITION_FAIL;
     // injection du stub dans le segment choisi
     memcpy((char *)elf.wmap + elf.inject_offset, elf.stub_bytes, elf.stub_size);
