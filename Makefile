@@ -16,28 +16,28 @@ PACKER_SRC = woody_woodpacker.c \
 SAMPLE_SRC = $(RES_DIR)/sample.c
 
 ASM_SRC = stub.s
-ASM_OBJ = stub.o
+ASM_BIN = stub.bin
 
 # Compilateurs et flags
 CC = gcc
 NASM = nasm
 CFLAGS = -Wall -Wextra -Werror -g3 -no-pie
-NASMFLAGS = -f elf64
+NASMFLAGS = -f bin
 
 # Règle par défaut
-all: $(PACKER) $(SAMPLE)
+all: $(ASM_BIN) $(PACKER) $(SAMPLE)
 
-# Compilation du packer
-$(PACKER): $(PACKER_SRC) $(ASM_OBJ)
-	$(CC) $(CFLAGS) -o $(PACKER) $(PACKER_SRC) $(ASM_OBJ)
+# Compilation du stub en binaire
+$(ASM_BIN): $(ASM_SRC)
+	$(NASM) $(NASMFLAGS) $< -o $@
+
+# Compilation du packer (ne linke pas le stub)
+$(PACKER): $(PACKER_SRC)
+	$(CC) $(CFLAGS) -o $(PACKER) $(PACKER_SRC)
 
 # Compilation du sample
 $(SAMPLE): $(SAMPLE_SRC)
 	$(CC) $(CFLAGS) -o $(SAMPLE) $(SAMPLE_SRC)
-
-# Compilation du stub en NASM
-$(ASM_OBJ): $(ASM_SRC)
-	$(NASM) $(NASMFLAGS) $< -o $@
 
 # Exécution du sample pour test
 run: $(SAMPLE)
@@ -45,7 +45,14 @@ run: $(SAMPLE)
 
 # Nettoyage
 clean:
-	rm -f $(PACKER) $(SAMPLE) woody
-	rm -f 3woody
-	rm -f $(ASM_OBJ)
+	rm -f $(ASM_BIN)
 
+# Nettoyage complet
+fclean: clean
+	rm -f $(PACKER) $(SAMPLE) woody 3woody
+
+# Recompilation complète
+re: fclean all
+
+# Cibles "non fichiers"
+.PHONY: all clean fclean re run
