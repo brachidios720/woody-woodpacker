@@ -4,61 +4,97 @@
 int encrypt_elf(ElfFile *elf){
 
     elf->wmap = mmap(NULL, elf->st_out.st_size, PROT_READ | PROT_WRITE, MAP_SHARED, elf->out, 0);
-    elf->wehdr = (Elf64_Ehdr *)elf->wmap;
-    //on stocke l'entrypoint de woody(qu'on voudra changer)
-    elf->old_entry = elf->wehdr->e_entry;
-    // printf("Ancien entrypoint: 0x%lx\n", old_entry);
+	if (elf->wmap == MAP_FAILED) {
+		perror("mmap output");
+		return -1;
+	}
+    elf->wehdr = EHDR(elf);
 
-    //on prend la programme header de woody
-    elf->wphdr = (Elf64_Phdr *)((char *)elf->wmap + elf->wehdr->e_phoff);
+	//on doit initialiser les pointeurs wehdr, wphdr et shdr
+	//car ils pointent vers des structures ELF32 ou ELF64
+	//et on ne peut pas faire de cast direct depuis void*
+	//on utilise donc la macro is64 pour savoir si on est en 32 ou 64 bits
+	//et on initialise les pointeurs en conséquence
 
-    // mise ne place de la crytp pour rechercher la section .text
+	if(elf->is64)
+	{
+		elf->wehdr = (Elf64_Ehdr *)elf->wmap;
+		elf->wphdr = (Elf64_Phdr *)((char *)elf->wmap + elf->wehdr->e_phoff);
+		elf->shdr = (Elf64_Shdr *)((char *)elf->wmap + elf->wehdr->e_shoff);
+	} else{
+		elf->wehdr = (Elf32_Ehdr *)elf->wmap;
+		elf->wphdr = (Elf32_Phdr *)((char *)elf->wmap + elf->wehdr->e_phoff);
+		elf->shdr = (Elf32_Shdr *)((char *)elf->wmap + elf->wehdr->e_shoff);
+	}
 
-    //permet l acces au section header de woody
-    elf->shwoody = (Elf64_Shdr *)((char *) elf->wmap + elf->wehdr->e_shoff);
+	//initalisation du old_entry
+	elf->old_entry = (size_t)elf->wehdr->e_entry;
+	// printf("Ancien entrypoint: 0x%lx\n", old_entry);
 
-    //permet l acces au nom des section present dans shwoody
-    elf->shstrwoody = &elf->shwoody[elf->wehdr->e_shstrndx];
-    const char *shstrtabwoody = (char *)elf->wmap + elf->shstrwoody->sh_offset;
+	//recherche de la section .text
+	//permet l acces au section header de woody
+	if(elf->is64)
+	{
+		Elf64_Ehdr *eh = (Elf64_Ehdr *)elf->wehdr;
+		Elf64_Shdr *sh = (Elf64_Shdr *)elf->shdr;
+		Elf64_Shdr *shstr = &sh[eh->e_shstrndx];
+		const char *shstrtab = (char *)elf->wmap + shstr->sh_offset;
 
-    elf->key = 0x42; // clé XOR (exemple, fixe pour le moment)
+		for(int i = 0; i < eh->e_shnum; i++)
+		{
+			const char *name = shstrtab + sh[i].sh_name;
+			if(strcmp(name, ".text") == 0)
+			{
+				elf->sh_offset = (unsigned long)sh[i].sh_offset;
+				elf->sh_addr = (unsigned long)sh[i].sh_addr;
+				elf->sh_size = (unsigned long)sh[i].sh_size;
+				break ;
+			}
+		}
+	}
+	else 
+	{
+		Elf32_Ehdr *eh = (Elf32_Ehdr *)elf->wehdr;
+		Elf32_Shdr *sh = (Elf32_Shdr *)elf->shdr;
+		Elf32_Shdr *shstr = &sh[eh->e_shstrndx];
+		const char *shstrtab = (char *)elf->wmap + shstr->sh_offset;
 
-    // p_text pointe vers la section .text dans woody
-    elf->sh_offset = 0;
-    elf->sh_addr = 0;
-    elf->sh_size = 0;
+		for(int i = 0; i < eh->e_shnum; i++)
+		{
+			const char *name = shstrtab + sh[i].sh_name;
+			if(strcmp(name, ".text") == 0)
+			{
+				elf->sh_offset = (unsigned long)sh[i].sh_offset;
+				elf->sh_addr = (unsigned long)sh[i].sh_addr;
+				elf->sh_size = (unsigned long)sh[i].sh_size;
+				break ;
+			}
+		}
+	}
 
-    for (int i = 0; i < elf->wehdr->e_shnum; i++){
-        
-        const char *name = shstrtabwoody + elf->shwoody[i].sh_name;
-        if(strcmp(name, ".text") == 0){
-            printf(".text: offset=0x%lx addr=0x%lx size= 0x%lx\n", 
-                (unsigned long)elf->shwoody[i].sh_offset,
-                (unsigned long)elf->shwoody[i].sh_addr,
-                (unsigned long)elf->shwoody[i].sh_size);
-                elf->sh_offset = (unsigned long)elf->shwoody[i].sh_offset;
-                elf->sh_addr = (unsigned long)elf->shwoody[i].sh_addr;
-                elf->sh_size = (unsigned long)elf->shwoody[i].sh_size;
-            }
-    }
-    
-    // chiffrement en methode XOR
-    if(elf->sh_offset != 0 && elf->sh_addr != 0 && elf->sh_size != 0){
-        unsigned char *p_text = (unsigned char *)elf->wmap + elf->sh_offset;
-        
-        for (size_t i = 0; i < elf->sh_size; i++) {
-            p_text[i] ^= elf->key;  // on chiffre en place
-        }
-        printf(".text chiffré avec la clé 0x%x\n", elf->key);
-    }
-    else{
-        perror("encrypt error\n");
-        return -1;
-    }
-        
-    printf("[PATCH] .text addr=0x%lx size=0x%lx old_entry=0x%lx key=0x%x\n",
-       elf->sh_addr, elf->sh_size, elf->old_entry, elf->key);
-    //sauvegarder les changements sur le disque
-    msync(elf->wmap, elf->st_out.st_size, MS_SYNC);
-    return(0);
+	if(elf->sh_offset == 0 || elf->sh_addr == 0 || elf->sh_size == 0)
+	{
+		printf("Section .text not found\n");
+		munmap(elf->wmap, elf->st_out.st_size);
+		return -1;
+	}
+
+	//chiffrement XOR sur la section .text
+	elf->key = 0x42; // clé XOR (exemple, fixe pour le moment)
+	unsigned char *p_text = (unsigned char *)elf->wmap + elf->sh_offset;
+
+	for(size_t i = 0; i < elf->sh_size; i++)
+	{
+		p_text[i] ^= elf->key;  // on chiffre en place
+	}
+
+	//sauvegarde sur le disque
+	if(msync(elf->wmap, elf->st_out.st_size, MS_SYNC) == -1)
+	{
+		perror("msync");
+		munmap(elf->wmap, elf->st_out.st_size);
+		return -1;
+	}
+
+	return 0;
 }

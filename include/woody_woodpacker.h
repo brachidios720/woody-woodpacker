@@ -17,7 +17,20 @@
 # define STUB_SETUP_ERROR 13
 # define CALCUL_STUB_POSITION_FAIL 14
 
-typedef struct {
+
+// Macros pour accéder aux champs des structures ELF32 ou ELF64
+// en fonction de la valeur de is64 dans ElfFile
+#define EHDR(elf)  ((elf)->is64 ? (Elf64_Ehdr *)(elf)->ehdr : (Elf32_Ehdr *)(elf)->ehdr)
+#define PHDR(elf)  ((elf)->is64 ? (Elf64_Phdr *)(elf)->phdr : (Elf32_Phdr *)(elf)->phdr)
+#define SHDR(elf)  ((elf)->is64 ? (Elf64_Shdr *)(elf)->shdr : (Elf32_Shdr *)(elf)->shdr)
+#define WEHDR(elf) ((elf)->is64 ? (Elf64_Ehdr *)(elf)->wehdr : (Elf32_Ehdr *)(elf)->wehdr)
+#define WPHDR(elf) ((elf)->is64 ? (Elf64_Phdr *)(elf)->wphdr : (Elf32_Phdr *)(elf)->wphdr)
+
+// Macro pour accéder à un programme header spécifique
+#define PHDR_IDX(elf, idx) ( (elf)->is64 ? &((Elf64_Phdr *)((elf)->phdr))[idx] : &((Elf32_Phdr *)((elf)->phdr))[idx] )
+
+
+typedef struct s_elffile {
 
     int fd;
     int out;
@@ -27,16 +40,16 @@ typedef struct {
     struct stat st_out;
     struct stat st_stub;
 
-    void *map;
-    void *wmap;
+    void *map;   // mmap du fichier original
+    void *wmap;  // mmap du fichier copié
 
-    Elf64_Ehdr *ehdr;
-    Elf64_Phdr *phdr;
-    Elf64_Ehdr *wehdr;
-    Elf64_Phdr *wphdr;
-    Elf64_Shdr *shwoody;
-    Elf64_Shdr *shstrwoody;
-    Elf64_Addr old_entry;
+    void *ehdr;  // pointeur générique vers Elf32_Ehdr ou Elf64_Ehdr
+    void *phdr;  // pointeur générique vers Elf32_Phdr ou Elf64_Phdr
+    void *shdr;  // pointeur générique vers Elf32_Shdr ou Elf64_Shdr
+    void *wehdr; // header du binaire copié
+    void *wphdr; // phdr du binaire copié
+
+    size_t old_entry;
 
     unsigned long sh_offset;
     unsigned long sh_addr;
@@ -53,7 +66,9 @@ typedef struct {
     int target_idx;
     size_t inject_offset;
 
+    int is64;   // <-- nouveau champ
 } ElfFile;
+
 
 
 int open_and_map(const char *path, ElfFile *elf);

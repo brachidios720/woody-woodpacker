@@ -31,18 +31,20 @@ int main(int ac, char **av){
 
     printf("entry = %ld\n", elf.ehdr->e_entry);
 
-    elf.phdr = (Elf64_Phdr *)((char *)elf.map + elf.ehdr->e_phoff);
 
-    for (int i = 0; i < elf.ehdr->e_phnum; i++) {
-        if (elf.phdr[i].p_type == PT_LOAD) {
-            printf("Segment %d: offset=0x%lx vaddr=0x%lx memsz=0x%lx filesz=0x%lx\n",
-                   i,
-                (unsigned long)elf.phdr[i].p_offset,
-                (unsigned long)elf.phdr[i].p_vaddr,
-                (unsigned long)elf.phdr[i].p_memsz,
-                (unsigned long)elf.phdr[i].p_filesz);
-        }
-    }
+	// Affichage des segments PT_LOAD avec les macros definie dans le .h
+	for(int i = 0; i < EHDR(&elf)->e_phnum; i++)
+	{
+		if(PHDR(&elf, i)->p_type == PT_LOAD)
+		{
+			printf("Segment %d: offset=0x%zx vaddr=0x%lx filesz=0x%zx memsz=0x%zx\n",
+				i,
+				(unsigned long)PHDR(&elf, i)->p_offset,
+				(unsigned long)PHDR(&elf, i)->p_vaddr,
+				(unsigned long)PHDR(&elf, i)->p_filesz,
+				(unsigned long)PHDR(&elf, i)->p_memsz);
+		}
+	}
 
     if(creat_copie_elf(&elf) < 0)
         return COPY_ERROR;
