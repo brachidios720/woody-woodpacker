@@ -15,8 +15,10 @@ PACKER_SRC = woody_woodpacker.c \
 
 SAMPLE_SRC = $(RES_DIR)/sample.c
 
-ASM_SRC = stub.s
-ASM_BIN = stub.bin
+ASM_SRC = stub64.s \
+			stub32.s
+ASM_BIN = stub64.bin \
+			stub32.bin
 
 # Compilateurs et flags
 CC = gcc

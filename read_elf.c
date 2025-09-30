@@ -40,23 +40,16 @@ int open_and_map(const char *path, ElfFile *elf){
     }
 
 	//detection de l'architecture 32 ou 64 bits
-	if(e_ident[EI_CLASS] == ELFCLASS64)
-	{
-		elf->is64 = 1;
-		elf->ehdr = (Elf64_Ehdr *)elf->map;
-		elf->phdr = (Elf64_Phdr *)((char *)elf->map + ((Elf64_Ehdr *)elf->map)->e_phoff);
-		elf->shdr = (Elf64_Shdr *)((char *)elf->map + ((Elf64_Ehdr *)elf->map)->e_shoff);
-	} else if (e_ident[EI_CLASS] == ELFCLASS32)
-	{
-		elf->is64 = 0;
-		elf->ehdr = (Elf32_Ehdr *)elf->map;
-		elf->phdr = (Elf32_Phdr *)((char *)elf->map + ((Elf32_Ehdr *)elf->map)->e_phoff);
-		elf->shdr = (Elf32_Shdr *)((char *)elf->map + ((Elf32_Ehdr *)elf->map)->e_shoff);
-	} else {
-		fprintf(stderr, "Unknown ELF class\n");
-		munmap(elf->map, elf->st.st_size);
-		close(elf->fd);
-		return -1;
-	}
+    if (e_ident[EI_CLASS] == ELFCLASS64) {
+        elf->is64 = 1;
+        elf->ehdr = (Elf64_Ehdr *)elf->map;
+        elf->phdr = (Elf64_Phdr *)((char *)elf->map + ((Elf64_Ehdr *)elf->map)->e_phoff);
+        elf->shdr = (Elf64_Shdr *)((char *)elf->map + ((Elf64_Ehdr *)elf->map)->e_shoff);
+    } else if (e_ident[EI_CLASS] == ELFCLASS32) {
+        elf->is64 = 0;
+        elf->ehdr = (Elf32_Ehdr *)elf->map;
+        elf->phdr = (Elf32_Phdr *)((char *)elf->map + ((Elf32_Ehdr *)elf->map)->e_phoff);
+        elf->shdr = (Elf32_Shdr *)((char *)elf->map + ((Elf32_Ehdr *)elf->map)->e_shoff);
+    }
     return 0;
 }
