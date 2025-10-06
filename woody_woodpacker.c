@@ -18,14 +18,24 @@
 
 int main(int ac, char **av){
 
-    if(ac != 2 )
+    if(ac != 3 )
     {
-        fprintf(stderr, "Wrong number of arguments %s\n", av[0]);
+        fprintf(stderr, "Wrong number of arguments, './woody_woodpacker', 'smaple', 'key' %s\n", av[0]);
         return 1;
     }
 
+
     ElfFile elf;
 
+    elf.key = key_trans(av[2], &elf);
+    if(!elf.key){
+        printf("format key error. The key need 16 caractere in uppercase hexadecimal");
+        return 1;
+    }
+    for(size_t x = 0; x < elf.key_len; x++){
+        printf("key enter = %02X ", elf.key[x]);
+        printf("\n");
+    }
     if(open_and_map(av[1], &elf) < 0)
         return OPEN_AND_READ_ERROR;
 
@@ -59,6 +69,10 @@ int main(int ac, char **av){
         return CALCUL_STUB_POSITION_FAIL;
     // injection du stub dans le segment choisi
     memcpy((char *)elf.wmap + elf.inject_offset, elf.stub_bytes, elf.stub_size);
+
+    if (msync((char *)elf.wmap + elf.inject_offset, elf.stub_size, MS_SYNC) == -1) {
+        perror("msync after stub injection");
+    }
 
     printf("[DEBUG] inject_offset=0x%zx stub[0..4]=%02x %02x %02x %02x\n",
        elf.inject_offset, elf.stub_bytes[0], elf.stub_bytes[1], elf.stub_bytes[2], elf.stub_bytes[3]);

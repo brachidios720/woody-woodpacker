@@ -21,8 +21,6 @@ int encrypt_elf(ElfFile *elf){
     elf->shstrwoody = &elf->shwoody[elf->wehdr->e_shstrndx];
     const char *shstrtabwoody = (char *)elf->wmap + elf->shstrwoody->sh_offset;
 
-    elf->key = 0x42; // clé XOR (exemple, fixe pour le moment)
-
     // p_text pointe vers la section .text dans woody
     elf->sh_offset = 0;
     elf->sh_addr = 0;
@@ -47,17 +45,23 @@ int encrypt_elf(ElfFile *elf){
         unsigned char *p_text = (unsigned char *)elf->wmap + elf->sh_offset;
         
         for (size_t i = 0; i < elf->sh_size; i++) {
-            p_text[i] ^= elf->key;  // on chiffre en place
+            p_text[i] ^= elf->key[i % elf->key_len];  // on chiffre en place
         }
-        printf(".text chiffré avec la clé 0x%x\n", elf->key);
     }
     else{
         perror("encrypt error\n");
         return -1;
     }
+    printf(".text chiffré avec la clé: ");
+    for (size_t i = 0; i < elf->key_len; ++i) printf("%02X", elf->key[i]);
+    printf("\n");
+
         
-    printf("[PATCH] .text addr=0x%lx size=0x%lx old_entry=0x%lx key=0x%x\n",
-       elf->sh_addr, elf->sh_size, elf->old_entry, elf->key);
+    printf("[PATCH] .text addr=0x%lx size=0x%lx old_entry=0x%lx key=",
+        elf->sh_addr, elf->sh_size, elf->old_entry);
+    for (size_t i = 0; i < elf->key_len; ++i) printf("%02X", elf->key[i]);
+    printf("\n");
+
     //sauvegarder les changements sur le disque
     msync(elf->wmap, elf->st_out.st_size, MS_SYNC);
     return(0);
