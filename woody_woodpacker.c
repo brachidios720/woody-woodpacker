@@ -18,24 +18,11 @@
 
 int main(int ac, char **av){
 
-    if(ac != 3 )
-    {
-        fprintf(stderr, "Wrong number of arguments, './woody_woodpacker', 'smaple', 'key' %s\n", av[0]);
-        return 1;
-    }
-
 
     ElfFile elf;
 
-    elf.key = key_trans(av[2], &elf);
-    if(!elf.key){
-        printf("format key error. The key need 16 caractere in uppercase hexadecimal");
-        return 1;
-    }
-    for(size_t x = 0; x < elf.key_len; x++){
-        printf("key enter = %02X ", elf.key[x]);
-        printf("\n");
-    }
+    parse_args(ac, av, &elf);
+    
     if(open_and_map(av[1], &elf) < 0)
         return OPEN_AND_READ_ERROR;
 

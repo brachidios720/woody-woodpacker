@@ -1,6 +1,7 @@
 #ifndef WOODY_WOODPACKER_H
 #define WOODY_WOODPACKER_H
 
+#define _GNU_SOURCE
 #include <stdlib.h>
 #include <stdio.h>
 #include <elf.h>
@@ -9,6 +10,8 @@
 #include <sys/stat.h>
 #include <sys/mman.h>
 #include <string.h>
+#include <sys/random.h>
+
 
 
 # define OPEN_AND_READ_ERROR 10
@@ -65,5 +68,7 @@ int encrypt_elf(ElfFile *elf);
 int set_stub(ElfFile *elf);
 int calcul_stub_position(ElfFile *elf);
 unsigned char *key_trans(const char *hex, ElfFile *elf);
+int parse_args(int ac, char **av, ElfFile *elf);
+int generate_random_key(size_t n, unsigned char **buff);
 
 #endif
