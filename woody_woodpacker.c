@@ -21,7 +21,7 @@ int main(int ac, char **av){
 
     ElfFile elf;
 
-    parse_args(ac, av, &elf);
+    (parse_args(ac, av, &elf));
     
     if(open_and_map(av[1], &elf) < 0)
         return OPEN_AND_READ_ERROR;

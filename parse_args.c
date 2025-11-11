@@ -36,7 +36,6 @@ static void print_key_hex(const unsigned char *k, size_t n) {
 
 int parse_args(int ac, char **av, ElfFile *elf){
 
-
     if(ac < 2){
 
         printf("error of usage: ./<woody> <sample> <option -k> <key with len of 8>\n");
@@ -58,7 +57,7 @@ int parse_args(int ac, char **av, ElfFile *elf){
 
         elf->key = key_trans(av[3], elf);
         if(!elf->key){
-            printf("format key error. The key need 16 caractere in uppercase hexadecimal");
+            printf("format key error. The key need 8 caractere");
             return 1;
         }
     }

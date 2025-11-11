@@ -23,7 +23,7 @@ ASM_BIN = stub.bin
 # Compilateurs et flags
 CC = gcc
 NASM = nasm
-CFLAGS = -Wall -Wextra -Werror -g3 -no-pie
+CFLAGS = -Wall -Wextra -Werror -g3
 NASMFLAGS = -f bin
 
 # Règle par défaut
