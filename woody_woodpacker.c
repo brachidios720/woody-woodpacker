@@ -19,9 +19,10 @@
 int main(int ac, char **av){
 
 
-    ElfFile elf;
+    ElfFile elf = {0};
 
-    parse_args(ac, av, &elf);
+    if (parse_args(ac, av, &elf) != 0)
+        return 1;
     
     if(open_and_map(av[1], &elf) < 0)
         return OPEN_AND_READ_ERROR;
@@ -43,8 +44,6 @@ int main(int ac, char **av){
 
     if(creat_copie_elf(&elf) < 0)
         return COPY_ERROR;
-    //struct stat st_out;
-    fstat(elf.out, &elf.st_out);
 
     if(encrypt_elf(&elf) < 0)
         return ENCRYPT_ERROR;
@@ -57,9 +56,9 @@ int main(int ac, char **av){
     // injection du stub dans le segment choisi
     memcpy((char *)elf.wmap + elf.inject_offset, elf.stub_bytes, elf.stub_size);
 
-    if (msync((char *)elf.wmap + elf.inject_offset, elf.stub_size, MS_SYNC) == -1) {
-        perror("msync after stub injection");
-    }
+    // if (msync((char *)elf.wmap + elf.inject_offset, elf.stub_size, MS_SYNC) == -1) {
+    //     perror("msync after stub injection");
+    // }
 
     printf("[DEBUG] inject_offset=0x%zx stub[0..4]=%02x %02x %02x %02x\n",
        elf.inject_offset, elf.stub_bytes[0], elf.stub_bytes[1], elf.stub_bytes[2], elf.stub_bytes[3]);
