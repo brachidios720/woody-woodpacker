@@ -51,8 +51,11 @@ my_stub:
     test rcx, rcx
     jz   .decrypt_done
 
-    mov dl, [rsi + r9]             ; dl = key[r9]
-    xor byte [rbx], dl             ; *rbx ^= dl
+	mov dl, [rsi + r9]        ; lire octet clé
+	mov al, [rbx]              ; lire octet chiffré
+	xor al, dl 			  ; déchiffrement XOR avec octet clé
+	ror al, 3				;rotation a droite de 3 bits (car chiffrement de 3 vers la gauche)
+	mov [rbx], al              ; écrire octet déchiffré
 
     inc rbx                        ; avancer dans la zone
     dec rcx                        ; bytes restants --

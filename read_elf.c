@@ -16,7 +16,7 @@ int open_and_map(const char *path, ElfFile *elf){
     {
         perror("fstat");
         close(elf->fd);
-        return -1;
+        return -1;	
     }
 
     elf->map = mmap(NULL, elf->st.st_size, PROT_READ, MAP_PRIVATE, elf->fd, 0);
