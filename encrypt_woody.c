@@ -50,7 +50,11 @@ int encrypt_elf(ElfFile *elf){
         unsigned char *p_text = (unsigned char *)elf->wmap + elf->sh_offset;
         
         for (size_t i = 0; i < elf->sh_size; i++) {
-            p_text[i] ^= elf->key[i % elf->key_len];  // on chiffre en place
+
+			unsigned char v = p_text[i];
+
+			v = (unsigned char)(v << 3) | (v >> 5); // rotation de 3 bits à gauche
+            p_text[i] = v ^ elf->key[i % elf->key_len];  // on chiffre en place
         }
     }
     else{
