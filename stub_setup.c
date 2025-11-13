@@ -22,5 +22,5 @@ int set_stub(ElfFile *elf){
     elf->stub_size = (size_t)elf->st_stub.st_size;
 
     printf("stub_size = %ld\n", elf->stub_size);
-    return 1;
+    return 0;
 }
