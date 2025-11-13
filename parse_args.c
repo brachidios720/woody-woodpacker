@@ -36,13 +36,14 @@ static void print_key_hex(const unsigned char *k, size_t n) {
 
 int parse_args(int ac, char **av, ElfFile *elf){
 
-    if(ac < 2){
+    if(ac < 2 || ac > 4){
 
         printf("error of usage: ./<woody> <sample> <option -k> <key with len of 8>\n");
         return -1;
     }
 
-    if(ac == 2){
+
+    if(ac < 4){
 
         elf->key_len = 4;
         if(generate_random_key(elf->key_len, &elf->key) != 0)
@@ -53,11 +54,11 @@ int parse_args(int ac, char **av, ElfFile *elf){
         return 0;
     }
 
-    if(ac == 4 && strcmp(av[2], "-k") == 0){
+    if(ac == 4 && strcmp(av[2], "-k") == 0 && av[3] != NULL){
 
         elf->key = key_trans(av[3], elf);
         if(!elf->key){
-            printf("format key error. The key need 8 caractere");
+            printf("format key error. The key length should be between 2 and 8 chars in HEX");
             return 1;
         }
     }

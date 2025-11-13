@@ -21,6 +21,5 @@ int set_stub(ElfFile *elf){
     // Taille du stub à injecter dans le binaire
     elf->stub_size = (size_t)elf->st_stub.st_size;
 
-    printf("stub_size = %ld\n", elf->stub_size);
     return 0;
 }

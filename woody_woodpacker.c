@@ -27,20 +27,7 @@ int main(int ac, char **av){
     if(open_and_map(av[1], &elf) < 0)
         return OPEN_AND_READ_ERROR;
 
-    printf("entry = %ld\n", elf.ehdr->e_entry);
-
     elf.phdr = (Elf64_Phdr *)((char *)elf.map + elf.ehdr->e_phoff);
-
-    for (int i = 0; i < elf.ehdr->e_phnum; i++) {
-        if (elf.phdr[i].p_type == PT_LOAD) {
-            printf("Segment %d: offset=0x%lx vaddr=0x%lx memsz=0x%lx filesz=0x%lx\n",
-                   i,
-                (unsigned long)elf.phdr[i].p_offset,
-                (unsigned long)elf.phdr[i].p_vaddr,
-                (unsigned long)elf.phdr[i].p_memsz,
-                (unsigned long)elf.phdr[i].p_filesz);
-        }
-    }
 
     if(creat_copie_elf(&elf) < 0)
         return COPY_ERROR;
@@ -60,9 +47,6 @@ int main(int ac, char **av){
     //     perror("msync after stub injection");
     // }
 
-    printf("[DEBUG] inject_offset=0x%zx stub[0..4]=%02x %02x %02x %02x\n",
-       elf.inject_offset, elf.stub_bytes[0], elf.stub_bytes[1], elf.stub_bytes[2], elf.stub_bytes[3]);
-
     //mise a jour de la taille des donnees pour ce segment
     //(pfilesz c'est la taille du segment qui apparait dans readelf)
     elf.wphdr[elf.target_idx].p_filesz += (Elf64_Xword)elf.stub_size;
@@ -74,9 +58,7 @@ int main(int ac, char **av){
 
     free(elf.stub_bytes);
 
-    printf("Injection OK: seg=%d inject_offset=0x%zx new_entry=0x%lx\n",
-           elf.target_idx, elf.inject_offset, (unsigned long)elf.wehdr->e_entry);
-
     close(elf.fd);
+    free(elf.key);
     return 0;
 }

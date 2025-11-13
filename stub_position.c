@@ -83,16 +83,10 @@ int calcul_stub_position(ElfFile *elf){
         return -1;
     }
 
-    printf("[DEBUG] stub_bytes @ key_space_off (avant): ");
-    for (size_t i = 0; i < elf->key_len; ++i) printf("%02X ", elf->stub_bytes[key_space_off + i]);
-    printf("\n");
 
     memcpy(elf->stub_bytes + key_space_off, elf->key, elf->key_len);
 
 
-    printf("[DEBUG] stub_bytes @ key_space_off (apres): ");
-    for (size_t i = 0; i < elf->key_len; ++i) printf("%02X ", elf->stub_bytes[key_space_off + i]);
-    printf("\n");
     // calcul de la virtuel addresse du segment target;
     uint64_t seg_vadrr = elf->wphdr[elf->target_idx].p_vaddr;
     // clacul de l'offset de la segment target le segement ou sera le stub
@@ -114,9 +108,6 @@ int calcul_stub_position(ElfFile *elf){
         if (*p == 0x4444444444444444ULL) *p = key_vaddr; // adresse virtuel de la cle 
         if (*p == 0x5555555555555555ULL) *p = elf->key_len; // longueur de la cle
     }
-
-    printf("sh_size = %zu, inject_offset = 0x%zx, injected_stub_vaddr = 0x%lx, key_vaddr = 0x%lx\n",
-           (size_t)elf->sh_size, elf->inject_offset, (unsigned long)inject_stub_vaddr, (unsigned long)key_vaddr);
 
     return 0;
 }

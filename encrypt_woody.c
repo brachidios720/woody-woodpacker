@@ -30,10 +30,6 @@ int encrypt_elf(ElfFile *elf){
         
         const char *name = shstrtabwoody + elf->shwoody[i].sh_name;
         if(strncmp(name, ".text", 5) == 0){
-            printf(".text: offset=0x%lx addr=0x%lx size= 0x%lx\n", 
-                (unsigned long)elf->shwoody[i].sh_offset,
-                (unsigned long)elf->shwoody[i].sh_addr,
-                (unsigned long)elf->shwoody[i].sh_size);
                 elf->sh_offset = (unsigned long)elf->shwoody[i].sh_offset;
                 elf->sh_addr = (unsigned long)elf->shwoody[i].sh_addr;
                 elf->sh_size = (unsigned long)elf->shwoody[i].sh_size;
@@ -41,8 +37,7 @@ int encrypt_elf(ElfFile *elf){
     }
     
     // chiffrement en methode XOR
-    printf("[DEBUG11111] encrypt on file '%d' mapped size=%ld bytes\n", elf->out, elf->st_out.st_size);
-    printf("[DEBUG11111] first 8 bytes before XOR: ");
+    printf("[DEBUG] first 8 bytes before ENCRYPTION: ");
     for (int i = 0; i < 8; i++) printf("%02X ", ((unsigned char*)elf->wmap)[elf->sh_offset + i]);
     printf("\n");
 
@@ -61,19 +56,14 @@ int encrypt_elf(ElfFile *elf){
         perror("encrypt error\n");
         return -1;
     }
-    printf("[DEBUG111111] first 8 bytes after XOR: ");
+    printf("[DEBUG] first 8 bytes after ENCRYPTION: ");
     for (int i = 0; i < 8; i++) printf("%02X ", ((unsigned char*)elf->wmap)[elf->sh_offset + i]);
     printf("\n");
 
-    printf(".text chiffré avec la clé: ");
+    printf("ENCRYPTING KEY: ");
     for (size_t i = 0; i < elf->key_len; ++i) printf("%02X", elf->key[i]);
     printf("\n");
 
-        
-    printf("[PATCH] .text addr=0x%lx size=0x%lx old_entry=0x%lx key=",
-        elf->sh_addr, elf->sh_size, elf->old_entry);
-    for (size_t i = 0; i < elf->key_len; ++i) printf("%02X", elf->key[i]);
-    printf("\n");
 
     //sauvegarder les changements sur le disque
     if(msync(elf->wmap, elf->st_out.st_size, MS_SYNC) == -1)
