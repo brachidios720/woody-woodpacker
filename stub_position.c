@@ -48,7 +48,6 @@ int calcul_stub_position(ElfFile *elf){
         }
     }
 
-
     if (elf->target_idx == -1) {
         free(elf->stub_bytes);
         munmap(elf->wmap, elf->st_out.st_size);
@@ -58,20 +57,66 @@ int calcul_stub_position(ElfFile *elf){
         return 1;
     }
 
-    elf->wphdr[elf->target_idx].p_flags |= PF_W;
+    //on parcour le segment pour trouver la marker de la cle qui est 0xAAAAAAAAAAAAAAAAULL si on le trouve on le met a a la valeur sinon -1 et erreur
+    ssize_t key_marker_off = -1;
+    const uint64_t KEY_MARKER = 0xAAAAAAAAAAAAAAAAULL;
+    for (size_t i = 0; i + sizeof(uint64_t) <= elf->stub_size; ++i) {
+    /* lire 8 octets à offset i */
+        uint64_t v = *(uint64_t *)(elf->stub_bytes + i);
+        if (v == KEY_MARKER) {
+            key_marker_off = (ssize_t)i;
+            break;
+        }
+    }
 
-    for (size_t i = 0; i < (size_t)elf->st_stub.st_size - 8; i++) {
+    if(key_marker_off == -1){
+        printf("Error: key_marker not found in the stub\n");
+        return -1;
+    }
+
+    // offset de la cle
+    size_t key_space_off = (size_t)key_marker_off + sizeof(uint64_t);
+
+
+    if(key_space_off + elf->key_len > elf->stub_size){
+        printf("Error: not enough place for the key in the stub");
+        return -1;
+    }
+
+    printf("[DEBUG] stub_bytes @ key_space_off (avant): ");
+    for (size_t i = 0; i < elf->key_len; ++i) printf("%02X ", elf->stub_bytes[key_space_off + i]);
+    printf("\n");
+
+    memcpy(elf->stub_bytes + key_space_off, elf->key, elf->key_len);
+
+
+    printf("[DEBUG] stub_bytes @ key_space_off (apres): ");
+    for (size_t i = 0; i < elf->key_len; ++i) printf("%02X ", elf->stub_bytes[key_space_off + i]);
+    printf("\n");
+    // calcul de la virtuel addresse du segment target;
+    uint64_t seg_vadrr = elf->wphdr[elf->target_idx].p_vaddr;
+    // clacul de l'offset de la segment target le segement ou sera le stub
+    uint64_t seg_file_offset = elf->wphdr[elf->target_idx].p_offset;
+
+    // calcul de l adressee ou sera le stub, nous permet de trouver la cle qui sera cacher dedans apres;
+    uint64_t inject_stub_vaddr = seg_vadrr + (uint64_t)(elf->inject_offset - seg_file_offset);
+
+    uint64_t key_vaddr = inject_stub_vaddr + (uint64_t)key_space_off;
+
+    elf->wphdr[elf->target_idx].p_flags |= PF_W; // rendre le fichier en lecture et ecriture sinnon impossible d'ecrire dedans
+
+    for (size_t i = 0; i + sizeof(uint64_t) <= elf->stub_size - 8; ++i) {
         uint64_t *p = (uint64_t *)(elf->stub_bytes + i);
 
         if (*p == 0x2222222222222222ULL) *p = elf->sh_addr;    // adresse virtuelle .text
         if (*p == 0x3333333333333333ULL) *p = elf->sh_size;    // taille .text
         if (*p == 0x1111111111111111ULL) *p = elf->old_entry;  // ancien entrypoint
-        if (*p == 0x4444444444444444ULL){
-            uint64_t key64 = (uint64_t)elf->key;   // clé 8 bits étendue
-            *p = key64;       // patch clé XOR
-        }
+        if (*p == 0x4444444444444444ULL) *p = key_vaddr; // adresse virtuel de la cle 
+        if (*p == 0x5555555555555555ULL) *p = elf->key_len; // longueur de la cle
     }
 
-    printf("sh_size = %ld\n", elf->sh_size);
+    printf("sh_size = %zu, inject_offset = 0x%zx, injected_stub_vaddr = 0x%lx, key_vaddr = 0x%lx\n",
+           (size_t)elf->sh_size, elf->inject_offset, (unsigned long)inject_stub_vaddr, (unsigned long)key_vaddr);
+
     return 0;
 }

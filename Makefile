@@ -11,7 +11,9 @@ PACKER_SRC = woody_woodpacker.c \
 			creat_elf.c \
 			encrypt_woody.c \
 			stub_setup.c \
-			stub_position.c
+			stub_position.c \
+			key_check.c \
+			parse_args.c
 
 SAMPLE_SRC = $(RES_DIR)/sample.c
 

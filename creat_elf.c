@@ -14,6 +14,13 @@ int creat_copie_elf(ElfFile *elf){
         close(elf->out);
         return -1;
     }
+    if (fstat(elf->out, &elf->st_out) == -1) {
+        perror("fstat out");
+        close(elf->out);
+        return -1;
+    }
+
+    printf("[DEBUG22222] Copied %ld bytes into 3woody\n", elf->st_out.st_size);
     return 0;
 }
 

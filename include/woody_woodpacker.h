@@ -1,6 +1,7 @@
 #ifndef WOODY_WOODPACKER_H
 #define WOODY_WOODPACKER_H
 
+#define _GNU_SOURCE
 #include <stdlib.h>
 #include <stdio.h>
 #include <elf.h>
@@ -9,6 +10,8 @@
 #include <sys/stat.h>
 #include <sys/mman.h>
 #include <string.h>
+#include <sys/random.h>
+
 
 
 # define OPEN_AND_READ_ERROR 10
@@ -41,7 +44,7 @@ typedef struct {
     unsigned long sh_offset;
     unsigned long sh_addr;
     unsigned long sh_size;
-    unsigned char key;
+    unsigned char *key;
 
     size_t seg_offset;
     size_t seg_filesz;
@@ -52,6 +55,9 @@ typedef struct {
 
     int target_idx;
     size_t inject_offset;
+    size_t key_len;
+
+    size_t key_marker;
 
 } ElfFile;
 
@@ -61,5 +67,8 @@ int creat_copie_elf(ElfFile *elf);
 int encrypt_elf(ElfFile *elf);
 int set_stub(ElfFile *elf);
 int calcul_stub_position(ElfFile *elf);
+unsigned char *key_trans(const char *hex, ElfFile *elf);
+int parse_args(int ac, char **av, ElfFile *elf);
+int generate_random_key(size_t n, unsigned char **buff);
 
 #endif

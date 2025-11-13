@@ -21,8 +21,6 @@ int encrypt_elf(ElfFile *elf){
     elf->shstrwoody = &elf->shwoody[elf->wehdr->e_shstrndx];
     const char *shstrtabwoody = (char *)elf->wmap + elf->shstrwoody->sh_offset;
 
-    elf->key = 0x42; // clé XOR (exemple, fixe pour le moment)
-
     // p_text pointe vers la section .text dans woody
     elf->sh_offset = 0;
     elf->sh_addr = 0;
@@ -31,7 +29,7 @@ int encrypt_elf(ElfFile *elf){
     for (int i = 0; i < elf->wehdr->e_shnum; i++){
         
         const char *name = shstrtabwoody + elf->shwoody[i].sh_name;
-        if(strcmp(name, ".text") == 0){
+        if(strncmp(name, ".text", 5) == 0){
             printf(".text: offset=0x%lx addr=0x%lx size= 0x%lx\n", 
                 (unsigned long)elf->shwoody[i].sh_offset,
                 (unsigned long)elf->shwoody[i].sh_addr,
@@ -43,22 +41,38 @@ int encrypt_elf(ElfFile *elf){
     }
     
     // chiffrement en methode XOR
+    printf("[DEBUG11111] encrypt on file '%d' mapped size=%ld bytes\n", elf->out, elf->st_out.st_size);
+    printf("[DEBUG11111] first 8 bytes before XOR: ");
+    for (int i = 0; i < 8; i++) printf("%02X ", ((unsigned char*)elf->wmap)[elf->sh_offset + i]);
+    printf("\n");
+
     if(elf->sh_offset != 0 && elf->sh_addr != 0 && elf->sh_size != 0){
         unsigned char *p_text = (unsigned char *)elf->wmap + elf->sh_offset;
         
         for (size_t i = 0; i < elf->sh_size; i++) {
-            p_text[i] ^= elf->key;  // on chiffre en place
+            p_text[i] ^= elf->key[i % elf->key_len];  // on chiffre en place
         }
-        printf(".text chiffré avec la clé 0x%x\n", elf->key);
     }
     else{
         perror("encrypt error\n");
         return -1;
     }
+    printf("[DEBUG111111] first 8 bytes after XOR: ");
+    for (int i = 0; i < 8; i++) printf("%02X ", ((unsigned char*)elf->wmap)[elf->sh_offset + i]);
+    printf("\n");
+
+    printf(".text chiffré avec la clé: ");
+    for (size_t i = 0; i < elf->key_len; ++i) printf("%02X", elf->key[i]);
+    printf("\n");
+
         
-    printf("[PATCH] .text addr=0x%lx size=0x%lx old_entry=0x%lx key=0x%x\n",
-       elf->sh_addr, elf->sh_size, elf->old_entry, elf->key);
+    printf("[PATCH] .text addr=0x%lx size=0x%lx old_entry=0x%lx key=",
+        elf->sh_addr, elf->sh_size, elf->old_entry);
+    for (size_t i = 0; i < elf->key_len; ++i) printf("%02X", elf->key[i]);
+    printf("\n");
+
     //sauvegarder les changements sur le disque
-    msync(elf->wmap, elf->st_out.st_size, MS_SYNC);
+    if(msync(elf->wmap, elf->st_out.st_size, MS_SYNC) == -1)
+        perror("msync full file");
     return(0);
 }
