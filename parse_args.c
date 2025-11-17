@@ -6,7 +6,7 @@ int generate_random_key(size_t n, unsigned char **buff){
     unsigned char *buf = malloc(n);
     if(!buf)
     {
-        perror("malloc key failed");
+        perror("malloc key failed\n");
         return 1;
     }
     ssize_t got = getrandom(buf, n, 0);
@@ -57,7 +57,7 @@ int parse_args(int ac, char **av, ElfFile *elf){
 
         elf->key = key_trans(av[3], elf);
         if(!elf->key){
-            printf("format key error. The key length should be between 2 and 8 chars in HEX");
+            printf("format key error. The key length should be between 2 and 8 chars in HEX\n");
             return 1;
         }
     }

@@ -17,6 +17,7 @@ int open_and_map(const char *path, ElfFile *elf){
     {
         perror("fstat");
         close(elf->fd);
+        free(elf->key);
         return -1;	
     }
 
@@ -24,6 +25,7 @@ int open_and_map(const char *path, ElfFile *elf){
     if(elf->map == MAP_FAILED){
         perror(elf->map);
         close(elf->fd);
+        free(elf->key);
         return -1;
     }
 
@@ -34,16 +36,18 @@ int open_and_map(const char *path, ElfFile *elf){
         elf->ehdr->e_ident[EI_MAG2] != ELFMAG2 || 
         elf->ehdr->e_ident[EI_MAG3] != ELFMAG3){
     
-        fprintf(stderr, "not on elf");
+        fprintf(stderr, "not on elf\n");
         munmap(elf->map, elf->st.st_size);
         close(elf->fd);
+        free(elf->key);
         return -1;
     }
 
     if(elf->ehdr->e_ident[EI_CLASS] != ELFCLASS64){
-        fprintf(stderr, "wromg elf format");
+        fprintf(stderr, "wromg elf format\n");
         munmap(elf->map, elf->st.st_size);
         close(elf->fd);
+        free(elf->key);
         return -1;
     }
     return 0;

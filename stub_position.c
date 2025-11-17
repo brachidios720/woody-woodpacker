@@ -71,6 +71,12 @@ int calcul_stub_position(ElfFile *elf){
 
     if(key_marker_off == -1){
         printf("Error: key_marker not found in the stub\n");
+        free(elf->key);
+        free(elf->stub_bytes);
+        munmap(elf->wmap, elf->st_out.st_size);
+        close(elf->out);
+        munmap(elf->map, elf->st.st_size);
+        close(elf->fd);
         return -1;
     }
 
@@ -80,6 +86,12 @@ int calcul_stub_position(ElfFile *elf){
 
     if(key_space_off + elf->key_len > elf->stub_size){
         printf("Error: not enough place for the key in the stub");
+         free(elf->key);
+        free(elf->stub_bytes);
+        munmap(elf->wmap, elf->st_out.st_size);
+        close(elf->out);
+        munmap(elf->map, elf->st.st_size);
+        close(elf->fd);
         return -1;
     }
 

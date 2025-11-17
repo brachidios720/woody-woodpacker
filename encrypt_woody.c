@@ -54,6 +54,7 @@ int encrypt_elf(ElfFile *elf){
     }
     else{
         perror("encrypt error\n");
+        free(elf->key);
         return -1;
     }
     printf("[DEBUG] first 8 bytes after ENCRYPTION: ");
