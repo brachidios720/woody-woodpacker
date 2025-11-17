@@ -6,10 +6,10 @@ unsigned char *key_trans(const char *hex, ElfFile *elf){
 
     size_t len = strlen(hex);
 
-    if (len % 2 != 0 || len < 2 || len > 8)  // 1..16 octets
+    if (len % 2 != 0 || len < 2 || len > 8)
         return NULL;
     
-    elf->key_len = len / 2; // division part 2 
+    elf->key_len = len / 2;
     
     unsigned char *bytes = malloc(elf->key_len);
     if(!bytes){

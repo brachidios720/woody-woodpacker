@@ -30,9 +30,9 @@ int generate_random_key(size_t n, unsigned char **buff){
     return(0);
 }
 
-static void print_key_hex(const unsigned char *k, size_t n) {
-    for (size_t i = 0; i < n; ++i) printf("%02X", k[i]);
-}
+// static void print_key_hex(const unsigned char *k, size_t n) {
+//     for (size_t i = 0; i < n; ++i) printf("%02X", k[i]);
+// }
 
 int parse_args(int ac, char **av, ElfFile *elf){
 
@@ -48,9 +48,8 @@ int parse_args(int ac, char **av, ElfFile *elf){
         elf->key_len = 4;
         if(generate_random_key(elf->key_len, &elf->key) != 0)
             return -1;
-        printf("[KEY] generated random key (%zu bytes): ", elf->key_len);
-        print_key_hex(elf->key, elf->key_len);
-        printf("\n");
+        // printf("[KEY] generated random key (%zu bytes): ", elf->key_len);
+        // print_key_hex(elf->key, elf->key_len);
         return 0;
     }
 

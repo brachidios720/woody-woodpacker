@@ -36,7 +36,7 @@ int encrypt_elf(ElfFile *elf){
             }
     }
     
-    // chiffrement en methode XOR
+    // chiffrement en methode ROT3 + xor
     printf("[DEBUG] first 8 bytes before ENCRYPTION: ");
     for (int i = 0; i < 8; i++) printf("%02X ", ((unsigned char*)elf->wmap)[elf->sh_offset + i]);
     printf("\n");

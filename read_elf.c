@@ -9,6 +9,7 @@ int open_and_map(const char *path, ElfFile *elf){
     if(elf->fd == -1)
     {
         perror("open");
+        free(elf->key);
         return -1;
     }
 
