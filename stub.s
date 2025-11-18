@@ -17,7 +17,6 @@ global my_stub
 
 my_stub:
     ; ===== Prologue : sauver l’état CPU =====
-    pushfq
     push rax
     push rcx
     push rdx
@@ -26,12 +25,6 @@ my_stub:
     push rdi
     push r8
     push r9
-    push r10
-    push r11
-    push r12
-    push r13
-    push r14
-    push r15
     push rbp
 
     ; ===== Paramètres patchés par le packer =====
@@ -76,12 +69,6 @@ my_stub:
 
     ; ===== Restauration de l’état CPU =====
     pop rbp
-    pop r15
-    pop r14
-    pop r13
-    pop r12
-    pop r11
-    pop r10
     pop r9
     pop r8
     pop rdi
@@ -90,7 +77,6 @@ my_stub:
     pop rdx
     pop rcx
     pop rax
-    popfq
 
     ; ===== Reprendre l’exécution à l’ancien entrypoint =====
     mov rax, 0x1111111111111111    ; OLD_ENTRY (patché par le packer)
@@ -102,4 +88,4 @@ message_len: equ $-message
 
 ; ===== Marqueur + espace pour la clé (copiée par le packer) =====
 key_marker:  dq 0xAAAAAAAAAAAAAAAA
-key_space:   times 16 db 0x00      ; augmente si tu veux accepter des clés plus longues
+key_space:   times 16 db 0x00  

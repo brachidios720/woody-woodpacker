@@ -12,7 +12,6 @@ int encrypt_elf(ElfFile *elf){
     //on prend la programme header de woody
     elf->wphdr = (Elf64_Phdr *)((char *)elf->wmap + elf->wehdr->e_phoff);
 
-    // mise ne place de la crytp pour rechercher la section .text
 
     //permet l acces au section header de woody
     elf->shwoody = (Elf64_Shdr *)((char *) elf->wmap + elf->wehdr->e_shoff);

@@ -36,7 +36,7 @@ int open_and_map(const char *path, ElfFile *elf){
         elf->ehdr->e_ident[EI_MAG2] != ELFMAG2 || 
         elf->ehdr->e_ident[EI_MAG3] != ELFMAG3){
     
-        fprintf(stderr, "not on elf\n");
+        fprintf(stderr, "not an elf\n");
         munmap(elf->map, elf->st.st_size);
         close(elf->fd);
         free(elf->key);
@@ -44,7 +44,7 @@ int open_and_map(const char *path, ElfFile *elf){
     }
 
     if(elf->ehdr->e_ident[EI_CLASS] != ELFCLASS64){
-        fprintf(stderr, "wromg elf format\n");
+        fprintf(stderr, "wrong elf format\n");
         munmap(elf->map, elf->st.st_size);
         close(elf->fd);
         free(elf->key);

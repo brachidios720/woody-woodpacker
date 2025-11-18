@@ -43,9 +43,7 @@ int main(int ac, char **av){
     // injection du stub dans le segment choisi
     memcpy((char *)elf.wmap + elf.inject_offset, elf.stub_bytes, elf.stub_size);
 
-    // if (msync((char *)elf.wmap + elf.inject_offset, elf.stub_size, MS_SYNC) == -1) {
-    //     perror("msync after stub injection");
-    // }
+
 
     //mise a jour de la taille des donnees pour ce segment
     //(pfilesz c'est la taille du segment qui apparait dans readelf)
